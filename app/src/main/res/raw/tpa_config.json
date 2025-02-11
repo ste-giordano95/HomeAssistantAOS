@@ -1,0 +1,151 @@
+{
+  "name": "HomeAssistant",
+  "description": "HomeAssistant for smart glasses.",
+  "version": "1.0.0",
+  "settings": [
+    {
+      "type": "group",
+      "title": "HomeAssistant Settings"
+    },
+    {
+      "key": "hassioUrl",
+      "type": "text",
+      "label": "URL",
+      "defaultValue": "https://youraddress:8123"
+    },
+    {
+      "key": "hassioToken",
+      "type": "text",
+      "label": "Token",
+      "defaultValue": ""
+    },
+    {
+      "type": "group",
+      "title": "Language settings"
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": "Language HomeAssistant",
+      "defaultValue": "it",
+      "options": [
+        {
+          "label": "English",
+          "value": "en"
+        },
+        {
+          "label": "Russian",
+          "value": "ru"
+        },
+        {
+          "label": "Chinese",
+          "value": "ch"
+        },
+        {
+          "label": "Spanish",
+          "value": "sp"
+        },
+        {
+          "label": "Japanese",
+          "value": "jp"
+        },
+        {
+          "label": "Dutch",
+          "value": "de"
+        },
+        {
+          "label": "Finnish",
+          "value": "Finnish"
+        },
+        {
+          "label": "French",
+          "value": "fr"
+        },
+        {
+          "label": "German",
+          "value": "ge"
+        },
+        {
+          "label": "Korean",
+          "value": "Korean"
+        },
+        {
+          "label": "Italian",
+          "value": "it"
+        },
+        {
+          "label": "Turkish",
+          "value": "Turkish"
+        },
+        {
+          "label": "Portuguese",
+          "value": "Portuguese"
+        }
+      ]
+    },
+    {
+      "key": "transcribe_language",
+      "type": "select",
+      "label": "Transcribe language",
+      "defaultValue": "Italian",
+      "options": [
+        {
+          "label": "English",
+          "value": "English"
+        },
+        {
+          "label": "Russian",
+          "value": "Russian"
+        },
+        {
+          "label": "Chinese (Pinyin)",
+          "value": "Chinese (Pinyin)"
+        },
+        {
+          "label": "Chinese (Hanzi)",
+          "value": "Chinese (Hanzi)"
+        },
+        {
+          "label": "Spanish",
+          "value": "Spanish"
+        },
+        {
+          "label": "Japanese",
+          "value": "Japanese"
+        },
+        {
+          "label": "Dutch",
+          "value": "Dutch"
+        },
+        {
+          "label": "Finnish",
+          "value": "Finnish"
+        },
+        {
+          "label": "French",
+          "value": "French"
+        },
+        {
+          "label": "German",
+          "value": "German"
+        },
+        {
+          "label": "Korean",
+          "value": "Korean"
+        },
+        {
+          "label": "Italian",
+          "value": "Italian"
+        },
+        {
+          "label": "Turkish",
+          "value": "Turkish"
+        },
+        {
+          "label": "Portuguese",
+          "value": "Portuguese"
+        }
+      ]
+    }
+  ]
+}

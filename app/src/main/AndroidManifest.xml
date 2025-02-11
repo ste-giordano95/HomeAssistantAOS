@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.HomeAssistantAOS"
+        tools:targetApi="31">
+
+        <service
+            android:name=".HomeAssistantService"
+            android:exported="true">
+
+            <!-- Intent filter required to communicate with AugmentOS -->
+            <intent-filter>
+                <action android:name="AUGMENTOS_INTENT" />
+            </intent-filter>
+        </service> <!-- (OPTIONAL) Declare an activity to start AugmentOS if this app is started from the launcher -->
+
+        <!-- (OPTIONAL) Declare an activity to start AugmentOS if this app is started from the launcher -->
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+    <!-- (OPTIONAL - to launch AugmentOS if this app is launched manually)
+    Declare the target package for launching AugmentOS and web browsers -->
+    <queries>
+        <package android:name="com.teamopensmartglasses.augmentos" />
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="augmentos" android:host="open" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+</manifest>
