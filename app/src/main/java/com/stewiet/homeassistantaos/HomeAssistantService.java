@@ -2,6 +2,7 @@ package com.stewiet.homeassistantaos;
 
 import android.util.Log;
 import android.content.Context;
+import android.os.Looper;
 
 import com.augmentos.augmentoslib.AugmentOSSettingsManager;
 import com.augmentos.augmentoslib.SmartGlassesAndroidService;
@@ -12,6 +13,8 @@ import com.augmentos.augmentoslib.events.SpeechRecOutputEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -19,11 +22,11 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Scanner;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 import android.os.Handler;
-import android.os.Looper;
 
-import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
 
@@ -38,7 +41,7 @@ public class HomeAssistantService extends SmartGlassesAndroidService {
 
     private String language = "";
 
-    List<String> exitTranslations = new ArrayList<>(Arrays.asList(
+    private final List<String> exitTranslations = new ArrayList<>(Arrays.asList(
             "Esci",         // Italiano
             "Exit",        // Inglese
             "Выход",       // Russo
@@ -74,9 +77,6 @@ public class HomeAssistantService extends SmartGlassesAndroidService {
         Token = AugmentOSSettingsManager.getSelectSetting(this, "hassioToken");
         language = AugmentOSSettingsManager.getSelectSetting(this, "language");
 
-        // Create AugmentOSLib instance
-        Log.d(TAG, "Servizio creato.");
-
         // Initialize the language check handler
         transcribeLanguageCheckHandler = new Handler(Looper.getMainLooper());
 
@@ -91,52 +91,50 @@ public class HomeAssistantService extends SmartGlassesAndroidService {
         long time = event.timestamp;
         boolean isFinal = event.isFinal;
 
-        if (isFinal){
-            Log.d(TAG, "Live Captions got final: " + text);
-        }
-
         debounceAndShowTranscriptOnGlasses(text, isFinal);
     }
 
     private final Handler glassesTranscriptDebounceHandler = new Handler(Looper.getMainLooper());
     private Runnable glassesTranscriptDebounceRunnable;
 
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
     private void debounceAndShowTranscriptOnGlasses(String transcript, boolean isFinal) {
         glassesTranscriptDebounceHandler.removeCallbacks(glassesTranscriptDebounceRunnable);
-        long currentTime = System.currentTimeMillis();
-        augmentOSLib.sendDoubleTextWall("Domanda: ", transcript);
+        augmentOSLib.sendDoubleTextWall("Command: ", transcript);
 
-        if (isFinal) {
+        if (!isFinal) return;
 
-            if(!exitTranslations.contains(transcript.replaceAll("[.,]", "")))
-            {
+        String cleanedTranscript = transcript.replaceAll("[.,]", "");
 
-                Handler handler = new Handler(Looper.getMainLooper());
-                handler.postDelayed(() -> {
-                    ExecutorService executor = Executors.newSingleThreadExecutor();
-                    Future<String>   future = executor.submit(() -> this.sendQueryToHomeAssistant(transcript.replaceAll("[.,]", "")));
-                    executor.execute(() -> {
-                        try {
-                            String response = future.get();  // Aspetta la risposta
-                            Log.d("RISPOSTA HA", response);
-                            augmentOSLib.sendDoubleTextWall("Home Assistant: ", response);
-                        } catch (Exception e) {
-                            augmentOSLib.sendDoubleTextWall("Errore durante la richiesta", e.toString());
-                            Log.e("ERRORE HA", "Errore durante la richiesta", e);
-                        }
-                    });
-
-                    executor.shutdown();
-                }, 2000); // 10 secondi di attesa
-            }else{
-                onDestroy();
-            }
+        if (exitTranslations.contains(cleanedTranscript)) {
+            onDestroy();
+            return;
         }
+
+        mainHandler.postDelayed(() -> fetchAndDisplayResponse(cleanedTranscript), 2000); // 2 secondi di attesa
     }
+
+    private void fetchAndDisplayResponse(String transcript) {
+        Future<String> futureResponse = executorService.submit(() -> sendQueryToHomeAssistant(transcript));
+
+        executorService.execute(() -> {
+            try {
+                String response = futureResponse.get();
+                augmentOSLib.sendDoubleTextWall("Home Assistant: ", response);
+            } catch (InterruptedException | ExecutionException e) {
+                Log.e("ERRORE HA", "Errore durante la richiesta", e);
+                augmentOSLib.sendDoubleTextWall("Error: ", e.toString());
+                Thread.currentThread().interrupt();
+            }
+        });
+    }
+
     public String sendQueryToHomeAssistant(String query) {
         if (Url == null || Token == null) {
-            augmentOSLib.sendDoubleTextWall("Home Assistant: ", "Home Assistant URL e Token non sono impostati.");
-            return "Home Assistant URL e Token non sono impostati.";
+            augmentOSLib.sendDoubleTextWall(getString(R.string.app_name).concat(" :"), "URL and Token not found.");
+            return getString(R.string.app_name).concat( " URL and Token not found..");
         }
 
         try {
@@ -148,7 +146,7 @@ public class HomeAssistantService extends SmartGlassesAndroidService {
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setDoOutput(true);
 
-            // 🔹 Corpo della richiesta JSON
+            //Request
             JSONObject jsonRequest = new JSONObject();
             jsonRequest.put("text", query);
             jsonRequest.put("language", language);
@@ -157,13 +155,12 @@ public class HomeAssistantService extends SmartGlassesAndroidService {
             os.write(jsonRequest.toString().getBytes("UTF-8"));
             os.close();
 
-            // 🔹 Legge la risposta JSON di Home Assistant
+            //Response
             Scanner scanner = new Scanner(connection.getInputStream());
             String responseBody = scanner.useDelimiter("\\A").next();
             scanner.close();
             connection.disconnect();
 
-            // 🔹 Estrai il testo dalla risposta JSON
             return parseHomeAssistantResponse(responseBody);
 
         } catch (Exception e) {
@@ -172,49 +169,43 @@ public class HomeAssistantService extends SmartGlassesAndroidService {
         }
     }
 
-    // 🔹 Estrae il testo della risposta JSON di Home Assistant
     private String parseHomeAssistantResponse(String jsonResponse) {
         try {
             JSONObject jsonObject = new JSONObject(jsonResponse);
-            JSONObject response = jsonObject.optJSONObject("response");
-            if (response != null) {
-                JSONObject speech = response.optJSONObject("speech");
-                if (speech != null) {
-                    JSONObject plain = speech.optJSONObject("plain");
-                    if (plain != null) {
-                        return plain.optString("speech", "Nessuna risposta");
-                    }
-                }
-            }
-            return "Nessuna risposta valida ricevuta.";
-        } catch (Exception e) {
+            JSONObject plainSpeech = Optional.ofNullable(jsonObject.optJSONObject("response"))
+                    .map(r -> r.optJSONObject("speech"))
+                    .map(s -> s.optJSONObject("plain"))
+                    .orElse(null);
+
+            return (plainSpeech != null) ? plainSpeech.optString("speech", "Nessuna risposta")
+                    : "Nessuna risposta valida ricevuta.";
+        } catch (JSONException e) {
             Log.e(TAG, "Errore nel parsing della risposta JSON", e);
             return "Errore nel parsing della risposta.";
         }
     }
 
+    private final Runnable transcribeLanguageCheckTask = this::checkAndUpdateTranscriptionLanguage;
+    private static final long CHECK_INTERVAL_MS = 333; // 3 volte al secondo
+
     private void startTranscribeLanguageCheckTask() {
-        transcribeLanguageCheckHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                // Get the currently selected transcription language
-                String currentTranscribeLanguage = getChosenTranscribeLanguage(getApplicationContext());
-
-                // If the language has changed or this is the first call
-                if (lastTranscribeLanguage == null || !lastTranscribeLanguage.equals(currentTranscribeLanguage)) {
-                    if (lastTranscribeLanguage != null) {
-                        augmentOSLib.stopTranscription(lastTranscribeLanguage);
-                    }
-                    augmentOSLib.requestTranscription(currentTranscribeLanguage);
-
-                    lastTranscribeLanguage = currentTranscribeLanguage;
-                }
-
-                // Schedule the next check
-                transcribeLanguageCheckHandler.postDelayed(this, 333); // Approximately 3 times a second
-            }
-        }, 200);
+        transcribeLanguageCheckHandler.postDelayed(transcribeLanguageCheckTask, 200);
     }
+
+    private void checkAndUpdateTranscriptionLanguage() {
+        String currentTranscribeLanguage = getChosenTranscribeLanguage(getApplicationContext());
+
+        if (!currentTranscribeLanguage.equals(lastTranscribeLanguage)) {
+            if (lastTranscribeLanguage != null) {
+                augmentOSLib.stopTranscription(lastTranscribeLanguage);
+            }
+            augmentOSLib.requestTranscription(currentTranscribeLanguage);
+            lastTranscribeLanguage = currentTranscribeLanguage;
+        }
+
+        transcribeLanguageCheckHandler.postDelayed(transcribeLanguageCheckTask, CHECK_INTERVAL_MS);
+    }
+
     public static String getChosenTranscribeLanguage(Context context) {
         String transcribeLanguageString = AugmentOSSettingsManager.getStringSetting(context, "transcribe_language");
         if (transcribeLanguageString.isEmpty()){
@@ -233,5 +224,4 @@ public class HomeAssistantService extends SmartGlassesAndroidService {
         augmentOSLib.deinit();
         super.onDestroy();
     }
-
 }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">HomeAssistantAOS</string>
+    <string name="open_augmentos">Please open AugmentOS Manager to use this app.</string>
 </resources>
