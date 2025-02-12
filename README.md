@@ -27,7 +27,7 @@ This service runs in the background, listening for voice commands. When it detec
 
 ## ⚠ Notes
 
-Ensure that HomeAssistant Url, Token and languages are set in tpa config before using the service.
+Ensure that HomeAssistant Url, Token ,exit word and languages are set in tpa config before using the service.
 
 The service requires an active internet connection to communicate with Home Assistant.
 

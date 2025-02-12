@@ -21,6 +21,16 @@
     },
     {
       "type": "group",
+      "title": "HomeAssistantAOS Settings"
+    },
+    {
+      "key": "exitWord",
+      "type": "text",
+      "label": "Word for exit from app",
+      "defaultValue": "quit"
+    },
+    {
+      "type": "group",
       "title": "Language settings"
     },
     {
@@ -39,23 +49,23 @@
         },
         {
           "label": "Chinese",
-          "value": "ch"
+          "value": "zh"
         },
         {
           "label": "Spanish",
-          "value": "sp"
+          "value": "es"
         },
         {
           "label": "Japanese",
-          "value": "jp"
+          "value": "ja"
         },
         {
           "label": "Dutch",
-          "value": "de"
+          "value": "nl"
         },
         {
           "label": "Finnish",
-          "value": "Finnish"
+          "value": "fi"
         },
         {
           "label": "French",
@@ -63,11 +73,11 @@
         },
         {
           "label": "German",
-          "value": "ge"
+          "value": "de"
         },
         {
           "label": "Korean",
-          "value": "Korean"
+          "value": "ko"
         },
         {
           "label": "Italian",
@@ -75,11 +85,11 @@
         },
         {
           "label": "Turkish",
-          "value": "Turkish"
+          "value": "tr"
         },
         {
           "label": "Portuguese",
-          "value": "Portuguese"
+          "value": "pt"
         }
       ]
     },
